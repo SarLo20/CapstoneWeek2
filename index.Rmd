@@ -1,5 +1,5 @@
 ---
-title: "Capstone Week2"
+title: "Milestone Report"
 author: "Sarah Lott"
 date: "2023-04-30"
 output: html_document
@@ -9,22 +9,181 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r packages, include=FALSE}
+library(tidyr)
+library(tidytext)
+library(R.utils)
+library(tibble)
+library(dplyr)
+library(wordcloud)
+library(ggplot2)
+library(kableExtra)
 ```
 
-## Including Plots
+## Content and objective of the report
 
-You can also embed plots, for example:
+This report is intended to show that I have successfully loaded the provided data set to R-Studio and performed an exploratory data analysis. Furthermore it should present interesting findings and ideas how to approach the task of creating a prediction algorithm.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+In this report I will concentrate on the English data set, which consists of the three files "en_US.blogs.txt", "en_US.news.txt" and "en_US.twitter.txt". The described analyses can of course be applied analogously to the other languages.
+
+## Exploratory analysis
+
+### Basic properties of the provided files
+
+```{r loading_data, echo=FALSE}
+if (!exists("blogsText_US")) {
+blogsText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt",
+                          skipNul = TRUE) %>% 
+    as.data.frame() %>% 
+    `colnames<-`(c("text"))
+}
+if (!exists("blogsWords_US")) {
+blogsWords_US <- unnest_tokens(blogsText_US, word, text)
+}
+
+if (!exists("newsText_US")) {
+newsText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt",
+                         skipNul = TRUE) %>% 
+    as.data.frame() %>% 
+    `colnames<-`(c("text"))
+}
+if (!exists("newsWords_US")) {
+newsWords_US <- unnest_tokens(newsText_US, word, text)
+}
+
+if (!exists("twitterText_US")) {
+twitterText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.twitter.txt",
+                            skipNul = TRUE) %>% 
+    as.data.frame() %>% 
+    `colnames<-`(c("text"))
+}
+if (!exists("twitterWords_US")) {
+twitterWords_US <- unnest_tokens(twitterText_US, word, text)
+}
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+In the table below the number of lines and number of words are listed for all three files. The data is read in using the "readLines" function (base package) and the words are counted using the "unnest_tokens" function (tidytext package).
+
+```{r statistics, echo=FALSE}
+df_statistics <- data.frame (file_name  = c("en_US.blogs.txt", "en_US.news.txt", "en_US.twitter.txt"),
+                  number_of_lines = c(nrow(blogsText_US), nrow(newsText_US), nrow(twitterText_US)),
+                  number_of_words = c(nrow(blogsWords_US), nrow(newsWords_US), nrow(twitterWords_US))
+)
+
+knitr::kable(df_statistics, format = "html") %>% 
+    column_spec(1:3,border_left = T, border_right = T) %>%
+    kable_styling()
+```
+
+### Most frequent words
+
+For further evaluation, the data is divided into a training (70%) and a test (30%) data set. This reduces the number of data points analysed and speeds up the analysis.
+
+```{r trainingData, echo=FALSE}
+noLinesBlogs <- countLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt")[1]
+
+blogsText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt",
+                         skipNul = TRUE,
+                         n = noLinesBlogs * 0.7) %>% 
+    as.data.frame() %>% 
+    `colnames<-`(c("text"))
+
+noLinesNews <- countLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt")[1]
+
+newsText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt",
+                         skipNul = TRUE,
+                         n = noLinesNews * 0.7) %>% 
+    as.data.frame() %>% 
+    `colnames<-`(c("text"))
+
+noLinesTwitter <- countLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.twitter.txt")[1]
+
+twitterText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.twitter.txt",
+                         skipNul = TRUE,
+                         n = noLinesTwitter * 0.7) %>% 
+    as.data.frame() %>% 
+    `colnames<-`(c("text"))
+```
+
+To be able to better work with the data, the function "unnest_tokens" from the tidytext package is used to rearrange the data to one word per row. The function also removes punctuation and changes all letters to lowercase.
+When counting the most frequent words (in the plot this is done for the twitter data) we can see that they don't tell us much about the real content of the text. These function words are called "stopwords" and are removed in most NLP applications. The result of removing the stopwords can be seen in the second plot.
+
+```{r wordCount, echo=FALSE}
+twitterWords <- unnest_tokens(twitterText, word, text)
+
+twitterWordsCount <- twitterWords %>% count(word, sort = TRUE)
+
+twitterWordsCountRelevant <- anti_join(twitterWords, get_stopwords()) %>% 
+    count(word, sort = TRUE)
+
+ggplot(data = twitterWordsCount[1:20,], aes(x = reorder(word, -n), y = n)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    ggtitle("Count of most frequent words (en_US.twitter.txt)") +
+    xlab("words") +
+    ylab("number")
+
+ggplot(data = twitterWordsCountRelevant[1:20,], aes(x = reorder(word, -n), y = n)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    ggtitle("Count of most frequent words (en_US.twitter.txt) after removing stopwords") +
+    xlab("words") +
+    ylab("number")
+```
+
+After extracting the individual words of the provided texts and removing the stopwords, we can create word clouds to get an impression of the 50 most frequent words.
+
+Blogs:
+```{r wordCloudBlogs, echo=FALSE}
+blogsWords <- unnest_tokens(blogsText, word, text)
+
+blogsWordsCountRelevant <- anti_join(blogsWords, get_stopwords()) %>% 
+    count(word, sort = TRUE)
+
+set.seed(123)
+wordcloud(words = blogsWordsCountRelevant$word, 
+          freq = blogsWordsCountRelevant$n,
+          max.words = 50,
+          rot.per = 0.35,
+          colors = brewer.pal(8, "Dark2"),
+          random.order = FALSE,
+          scale = c(0.5, 0.5))
+```
+
+News:
+```{r wordCloudNews, echo=FALSE}
+newsWords <- unnest_tokens(newsText, word, text)
+
+newsWordsCountRelevant <- anti_join(newsWords, get_stopwords()) %>% 
+    count(word, sort = TRUE)
+
+set.seed(123)
+wordcloud(words = newsWordsCountRelevant$word, 
+          freq = newsWordsCountRelevant$n,
+          max.words = 50,
+          rot.per = 0.35,
+          colors = brewer.pal(8, "Dark2"),
+          random.order = FALSE,
+          scale = c(0.5, 0.5))
+```
+
+Twitter:
+```{r wordCloudTwitter, echo=FALSE}
+set.seed(123)
+wordcloud(words = twitterWordsCountRelevant$word, 
+          freq = twitterWordsCountRelevant$n,
+          max.words = 50,
+          rot.per = 0.35,
+          colors = brewer.pal(8, "Dark2"),
+          random.order = FALSE,
+          scale = c(0.5, 0.5))
+```
+
+### Interesting findings
+
+wie unterscheiden sich die Dateien?
+
+Zahlen nicht ausgeschrieben
+
+## Plans for implementation of prediction algorithm
+
