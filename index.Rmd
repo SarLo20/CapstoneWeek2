@@ -1,5 +1,5 @@
 ---
-title: "Milestone Report"
+title: "Milestone Report - Capstone Project Week 2"
 author: "Sarah Lott"
 date: "2023-04-30"
 output: html_document
@@ -31,68 +31,71 @@ In this report I will concentrate on the English data set, which consists of the
 ### Basic properties of the provided files
 
 ```{r loading_data, echo=FALSE}
-if (!exists("blogsText_US")) {
-blogsText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt",
-                          skipNul = TRUE) %>% 
-    as.data.frame() %>% 
-    `colnames<-`(c("text"))
-}
-if (!exists("blogsWords_US")) {
-blogsWords_US <- unnest_tokens(blogsText_US, word, text)
-}
-
-if (!exists("newsText_US")) {
-newsText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt",
-                         skipNul = TRUE) %>% 
-    as.data.frame() %>% 
-    `colnames<-`(c("text"))
-}
-if (!exists("newsWords_US")) {
-newsWords_US <- unnest_tokens(newsText_US, word, text)
-}
-
-if (!exists("twitterText_US")) {
-twitterText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.twitter.txt",
-                            skipNul = TRUE) %>% 
-    as.data.frame() %>% 
-    `colnames<-`(c("text"))
-}
-if (!exists("twitterWords_US")) {
-twitterWords_US <- unnest_tokens(twitterText_US, word, text)
-}
+# if (!exists("blogsText_US")) {
+#     blogsText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt",
+#                               skipNul = TRUE) %>% 
+#         as.data.frame() %>% 
+#         `colnames<-`(c("text"))
+# }
+# if (!exists("blogsWords_US")) {
+#     blogsWords_US <- unnest_tokens(blogsText_US, word, text)
+# }
+# 
+# if (!exists("newsText_US")) {
+#     newsText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt",
+#                              skipNul = TRUE) %>% 
+#         as.data.frame() %>% 
+#         `colnames<-`(c("text"))
+# }
+# if (!exists("newsWords_US")) {
+#     newsWords_US <- unnest_tokens(newsText_US, word, text)
+# }
+# 
+# if (!exists("twitterText_US")) {
+#     twitterText_US <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.twitter.txt",
+#                                 skipNul = TRUE) %>% 
+#         as.data.frame() %>% 
+#         `colnames<-`(c("text"))
+# }
+# if (!exists("twitterWords_US")) {
+#     twitterWords_US <- unnest_tokens(twitterText_US, word, text)
+# }
 ```
 
 In the table below the number of lines and number of words are listed for all three files. The data is read in using the "readLines" function (base package) and the words are counted using the "unnest_tokens" function (tidytext package).
 
 ```{r statistics, echo=FALSE}
-df_statistics <- data.frame (file_name  = c("en_US.blogs.txt", "en_US.news.txt", "en_US.twitter.txt"),
-                  number_of_lines = c(nrow(blogsText_US), nrow(newsText_US), nrow(twitterText_US)),
-                  number_of_words = c(nrow(blogsWords_US), nrow(newsWords_US), nrow(twitterWords_US))
-)
+# df_statistics <- data.frame (file_name  = c("en_US.blogs.txt", "en_US.news.txt", "en_US.twitter.txt"),
+#                   number_of_lines = c(nrow(blogsText_US), nrow(newsText_US), nrow(twitterText_US)),
+#                   number_of_words = c(nrow(blogsWords_US), nrow(newsWords_US), nrow(twitterWords_US))
+# )
+
+df_statistics <- readRDS(file = "df_statistics.Rds")
 
 knitr::kable(df_statistics, format = "html") %>% 
-    column_spec(1:3,border_left = T, border_right = T) %>%
-    kable_styling()
+    column_spec(1:3,border_left = T, border_right = T)
 ```
 
 ### Most frequent words
 
-For further evaluation, the data is divided into a training (70%) and a test (30%) data set. This reduces the number of data points analysed and speeds up the analysis.
+Due to limited computer resources, the following evaluations are performed only for the first 10000 lines of each file.
 
 ```{r trainingData, echo=FALSE}
 noLinesBlogs <- countLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt")[1]
 
 blogsText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.blogs.txt",
-                         skipNul = TRUE,
-                         n = noLinesBlogs * 0.7) %>% 
+                       skipNul = TRUE,
+                       # n = noLinesBlogs * 0.7) %>% 
+                       n = 10000) %>% 
     as.data.frame() %>% 
     `colnames<-`(c("text"))
 
 noLinesNews <- countLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt")[1]
 
 newsText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.news.txt",
-                         skipNul = TRUE,
-                         n = noLinesNews * 0.7) %>% 
+                      skipNul = TRUE,
+                      # n = noLinesNews * 0.7) %>% 
+                      n = 10000) %>% 
     as.data.frame() %>% 
     `colnames<-`(c("text"))
 
@@ -100,7 +103,8 @@ noLinesTwitter <- countLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_
 
 twitterText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Capstone/final/en_US/en_US.twitter.txt",
                          skipNul = TRUE,
-                         n = noLinesTwitter * 0.7) %>% 
+                         # n = noLinesTwitter * 0.7) %>% 
+                         n = 10000) %>% 
     as.data.frame() %>% 
     `colnames<-`(c("text"))
 ```
@@ -108,7 +112,13 @@ twitterText <- readLines("/home/sarah/ownCloud/Sarah/Data Science Course/10_Caps
 To be able to better work with the data, the function "unnest_tokens" from the tidytext package is used to rearrange the data to one word per row. The function also removes punctuation and changes all letters to lowercase.
 When counting the most frequent words (in the plot this is done for the twitter data) we can see that they don't tell us much about the real content of the text. These function words are called "stopwords" and are removed in most NLP applications. The result of removing the stopwords can be seen in the second plot.
 
-```{r wordCount, echo=FALSE}
+
+<!-- Stop words are basically a set of commonly used words in any language, not just English. -->
+<!-- The reason why stop words are critical to many applications is that, if we remove the words that are very commonly used in a given language, we can focus on the important words instead. -->
+
+<!-- Stopwords are the words in any language which does not add much meaning to a sentence. They can safely be ignored without sacrificing the meaning of the sentence.  -->
+
+```{r wordCount, echo=FALSE, message=FALSE}
 twitterWords <- unnest_tokens(twitterText, word, text)
 
 twitterWordsCount <- twitterWords %>% count(word, sort = TRUE)
@@ -134,7 +144,7 @@ ggplot(data = twitterWordsCountRelevant[1:20,], aes(x = reorder(word, -n), y = n
 After extracting the individual words of the provided texts and removing the stopwords, we can create word clouds to get an impression of the 50 most frequent words.
 
 Blogs:
-```{r wordCloudBlogs, echo=FALSE}
+```{r wordCloudBlogs, echo=FALSE, warning=FALSE, message=FALSE}
 blogsWords <- unnest_tokens(blogsText, word, text)
 
 blogsWordsCountRelevant <- anti_join(blogsWords, get_stopwords()) %>% 
@@ -146,12 +156,11 @@ wordcloud(words = blogsWordsCountRelevant$word,
           max.words = 50,
           rot.per = 0.35,
           colors = brewer.pal(8, "Dark2"),
-          random.order = FALSE,
-          scale = c(0.5, 0.5))
+          random.order = FALSE)
 ```
 
 News:
-```{r wordCloudNews, echo=FALSE}
+```{r wordCloudNews, echo=FALSE, warning=FALSE, message=FALSE}
 newsWords <- unnest_tokens(newsText, word, text)
 
 newsWordsCountRelevant <- anti_join(newsWords, get_stopwords()) %>% 
@@ -163,27 +172,37 @@ wordcloud(words = newsWordsCountRelevant$word,
           max.words = 50,
           rot.per = 0.35,
           colors = brewer.pal(8, "Dark2"),
-          random.order = FALSE,
-          scale = c(0.5, 0.5))
+          random.order = FALSE)
 ```
 
 Twitter:
-```{r wordCloudTwitter, echo=FALSE}
+```{r wordCloudTwitter, echo=FALSE, warning=FALSE}
 set.seed(123)
 wordcloud(words = twitterWordsCountRelevant$word, 
           freq = twitterWordsCountRelevant$n,
           max.words = 50,
           rot.per = 0.35,
           colors = brewer.pal(8, "Dark2"),
-          random.order = FALSE,
-          scale = c(0.5, 0.5))
+          random.order = FALSE)
 ```
 
 ### Interesting findings
 
-wie unterscheiden sich die Dateien?
-
-Zahlen nicht ausgeschrieben
+As can be seen nicely in the word clouds, the most frequent words for the three files differ. In the news data, the word "said" is very dominant. Numbers are both included as letters and as numeric (see for example in the news data: "one" and "1"). It would make sense to convert everything to letters.
 
 ## Plans for implementation of prediction algorithm
 
+After the exploratory data analysis we can go on with building a basic n-gram model for predicting the next word based on the previous 1, 2, or 3 words. 
+To get an idea of the word combinations that occur in the files, we can again use the function "unnest_tokens" from the tidytext package. An example for the "en_US.blogs.txt" file is shown below. As expected the most frequent bigrams are combinations of stopwords. We would have to filter them out in a further step.
+
+```{r nGram, warning=FALSE, echo=FALSE}
+blogs_bigrams <- blogsText %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  filter(!is.na(bigram))
+
+blogs_bigrams_top <- blogs_bigrams %>% count(bigram, sort = TRUE) %>% head(10)
+
+knitr::kable(blogs_bigrams_top, format = "html") %>% 
+    column_spec(1:2,border_left = T, border_right = T)
+
+```
